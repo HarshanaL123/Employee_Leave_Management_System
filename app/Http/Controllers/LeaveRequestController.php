@@ -25,6 +25,12 @@ class LeaveRequestController extends Controller
             ]);
     }
 
+    // Show the form for creating a new leave request.
+    public function create(): Response
+    {
+        return Inertia::render('LeaveRequests/Create');
+    }
+    
     // Store a newly created leave request in storage.
     public function store(StoreLeaveRequest $request): RedirectResponse
     {
