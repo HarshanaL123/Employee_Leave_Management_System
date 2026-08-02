@@ -1,58 +1,121 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# CeylonByte • Employee Leave Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> An enterprise-grade, role-aware Single Page Application (SPA) built with **Laravel 13**, **Vue 3**, **Inertia.js**, and **Tailwind CSS**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Executive Summary
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+The **Employee Leave Management System** is an internal enterprise portal designed for **CeylonByte** teams. It streamlines employee time-off requests and managerial approval workflows into a fast, highly responsive SPA experience-eliminating page reloads and API boilerplate while maintaining strict MVC and backend security practices.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Technology Stack & Architecture
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Layer | Technology | Key Architectural Responsibility |
+| :--- | :--- | :--- |
+| **Backend Framework** | **Laravel 13 (PHP 8.3+)** | Handles routing, Eloquent ORM relationships, authentication, and authorization. |
+| **Frontend UI** | **Vue 3 (Composition API)** | Reactive `<script setup>` SPA components with high-contrast Dark/Light mode support. |
+| **Bridge / Routing** | **Inertia.js v2** | Modern Monolith bridge connecting Laravel controllers directly to Vue page components. |
+| **Styling & Design** | **Tailwind CSS v3** | Utility-first styling with sleek dark mode, glowing accents, and enterprise typography. |
+| **Database** | **MySQL 8** | Relational schema enforcing foreign key integrity and enum status constraints. |
+| **Bundler** | **Vite 8** | High-performance frontend bundler with Hot Module Replacement (HMR). |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Architectural Highlights
 
-## Agentic Development
+The application is structured around core software engineering principles to ensure scalability, database performance, and maintainability:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 1. Zero N+1 Query Architecture
+- In the manager dashboard view, leave requests are retrieved using explicit eager loading (`LeaveRequest::with('user')->latest()->get()`).
+- This guarantees a flat **2-query database execution** regardless of whether there are 10 or 10,000 leave requests.
 
+### 2. Strict Single Responsibility Principle (Skinny Controllers)
+- Controllers never contain inline validation rules.
+- Input verification is decoupled into a dedicated **Form Request** (`App\Http\Requests\StoreLeaveRequest`), enforcing date progression rules (`after_or_equal:today`, `after_or_equal:start_date`) and maximum character bounds before hitting controller logic.
+
+### 3. Role-Aware Query Scoping & Authorization
+- Users are assigned roles via the `is_manager` boolean attribute.
+- The `LeaveRequestController@index` method dynamically scopes data retrieval:
+  - **Managers:** Inspect full company-wide leave requests with employee attribution.
+  - **Employees:** View only their personal leave history (`$user->leaveRequests()`).
+- Manager-only actions (`PATCH /leave-requests/{id}/status`) enforce server-side 403 authorization checks (`! $request->user()->is_manager`).
+
+### 4. Seamless SPA State Mutations
+- Approval and denial workflows use Inertia's asynchronous `router.patch` method.
+- State changes update instantly in the UI with zero page flicker or manual page reloads.
+
+---
+
+## Features Overview
+
+### For Employees
+- **Streamlined Leave Submission:** Select start and end dates with a clear reason using an intuitive Vue form.
+- **Client & Server Validation:** Immediate inline error feedback for invalid dates or empty fields.
+- **Real-Time Status Tracking:** Beautiful status badges indicating whether a request is `PENDING`, `APPROVED`, or `DENIED`.
+
+### For Managers
+- **Enterprise Review Table:** View all submitted employee leave requests in an organized, centered table.
+- **Employee Identification:** Highlighted employee names (`text-indigo-400`) for quick scanning.
+- **Instant Decision Actions:** 1-click **Approve** and **Deny** action buttons that resolve pending requests instantly.
+
+---
+
+## Getting Started (Local Development)
+
+Follow these steps to run the application locally on your machine:
+
+### 1. Clone the Repository & Install Dependencies
 ```bash
-composer require laravel/boost --dev
+# Install PHP backend dependencies
+composer install
 
-php artisan boost:install
+# Install Node.js frontend dependencies
+npm install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Configure Environment & Database
+```bash
+# Copy the example environment file
+cp .env.example .env
 
-## Contributing
+# Generate your unique Laravel application encryption key
+php artisan key:generate
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Open `.env` and ensure your MySQL database credentials are configured:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=employee_leave_management
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## Code of Conduct
+### 3. Run Database Migrations
+```bash
+# Build the tables and relationships in MySQL
+php artisan migrate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 4. Start the Application Servers
+Open **two separate terminal tabs**:
 
-## Security Vulnerabilities
+**Terminal Tab 1 (Frontend Bundler):**
+```bash
+npm run dev
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+**Terminal Tab 2 (Laravel PHP Server):**
+```bash
+php artisan serve
+```
+
+Visit **`http://127.0.0.1:8000`** in your browser to explore the **CeylonByte Employee Leave Management System**!
+
+---
 
 ## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
